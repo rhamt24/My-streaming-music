@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Music Streaming</title>
+</head>
+<body>
+  <h1>Music Streaming</h1>
+  <input type="text" id="searchInput" placeholder="Search for music...">
+  <button onclick="search()">Search</button>
+  <ul id="results"></ul>
+  <audio id="player" controls></audio>
+  <h2>Recommendations</h2>
+  <ul id="recommendations"></ul>
+
+  <script>
+    async function search() {
+      const query = document.getElementById('searchInput').value;
+      const response = await fetch(`/api/search?q=${query}`);
+      const results = await response.json();
+      const resultsContainer = document.getElementById('results');
+      resultsContainer.innerHTML = '';
+      results.forEach(video => {
+        const li = document.createElement('li');
+        li.innerHTML = `<a href="#" onclick="play('${video.videoId}')">${video.title}</a>`;
+        resultsContainer.appendChild(li);
+      });
+    }
+
+    async function play(videoId) {
+      const player = document.getElementById('player');
+      player.src = `/api/stream?id=${videoId}`;
+      player.play();
+      const response = await fetch(`/api/recommendations?id=${videoId}`);
+      const recommendations = await response.json();
+      const recommendationsContainer = document.getElementById('recommendations');
+      recommendationsContainer.innerHTML = '';
+      recommendations.forEach(video => {
+        const li = document.createElement('li');
+        li.innerHTML = `<a href="#" onclick="play('${video.videoId}')">${video.title}</
