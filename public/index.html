@@ -28,11 +28,12 @@
           throw new Error('Network response was not ok');
         }
         const results = await response.json();
+        console.log('Search results:', results);  // Logging results
         const resultsContainer = document.getElementById('results');
         resultsContainer.innerHTML = '';
         results.forEach(video => {
           const li = document.createElement('li');
-          li.innerHTML = `<a href="#" onclick="play('${video.videoId}')">${video.title}</a>`;
+          li.innerHTML = `<a href="#" onclick="play('${video.videoId}', '${video.title}')">${video.title}</a>`;
           resultsContainer.appendChild(li);
         });
       } catch (error) {
@@ -41,7 +42,7 @@
       }
     }
 
-    async function play(videoId) {
+    async function play(videoId, title) {
       const player = document.getElementById('player');
       player.src = `/api/stream?id=${videoId}`;
       player.play();
@@ -52,11 +53,12 @@
           throw new Error('Network response was not ok');
         }
         const recommendations = await response.json();
+        console.log('Recommendations:', recommendations);  // Logging recommendations
         const recommendationsContainer = document.getElementById('recommendations');
-        recommendationsContainer.innerHTML = '';
+        recommendationsContainer.innerHTML = `<h3>Recommendations for "${title}"</h3>`;
         recommendations.forEach(video => {
           const li = document.createElement('li');
-          li.innerHTML = `<a href="#" onclick="play('${video.videoId}')">${video.title}</a>`;
+          li.innerHTML = `<a href="#" onclick="play('${video.videoId}', '${video.title}')">${video.title}</a>`;
           recommendationsContainer.appendChild(li);
         });
       } catch (error) {
