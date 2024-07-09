@@ -1,0 +1,34 @@
+.App {
+  text-align: center;
+  font-family: Arial, sans-serif;
+}
+
+input {
+  padding: 10px;
+  margin: 10px;
+  width: 300px;
+}
+
+button {
+  padding: 10px 20px;
+  margin: 10px;
+  background-color: #1DB954;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.results, .recommendations {
+  margin: 20px 0;
+}
+
+.track {
+  margin: 10px 0;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 10px;
+}
+
+audio {
+  display: block;
+  margin: 10px 0;
+}
