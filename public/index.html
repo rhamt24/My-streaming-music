@@ -17,25 +17,53 @@
   <script>
     async function search() {
       const query = document.getElementById('searchInput').value;
-      const response = await fetch(`/api/search?q=${query}`);
-      const results = await response.json();
-      const resultsContainer = document.getElementById('results');
-      resultsContainer.innerHTML = '';
-      results.forEach(video => {
-        const li = document.createElement('li');
-        li.innerHTML = `<a href="#" onclick="play('${video.videoId}')">${video.title}</a>`;
-        resultsContainer.appendChild(li);
-      });
+      if (!query) {
+        alert('Please enter a search query');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/search?q=${query}`);
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const results = await response.json();
+        const resultsContainer = document.getElementById('results');
+        resultsContainer.innerHTML = '';
+        results.forEach(video => {
+          const li = document.createElement('li');
+          li.innerHTML = `<a href="#" onclick="play('${video.videoId}')">${video.title}</a>`;
+          resultsContainer.appendChild(li);
+        });
+      } catch (error) {
+        console.error('Fetch error:', error);
+        alert('There was an error with the search. Please try again later.');
+      }
     }
 
     async function play(videoId) {
       const player = document.getElementById('player');
       player.src = `/api/stream?id=${videoId}`;
       player.play();
-      const response = await fetch(`/api/recommendations?id=${videoId}`);
-      const recommendations = await response.json();
-      const recommendationsContainer = document.getElementById('recommendations');
-      recommendationsContainer.innerHTML = '';
-      recommendations.forEach(video => {
-        const li = document.createElement('li');
-        li.innerHTML = `<a href="#" onclick="play('${video.videoId}')">${video.title}</
+
+      try {
+        const response = await fetch(`/api/recommendations?id=${videoId}`);
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const recommendations = await response.json();
+        const recommendationsContainer = document.getElementById('recommendations');
+        recommendationsContainer.innerHTML = '';
+        recommendations.forEach(video => {
+          const li = document.createElement('li');
+          li.innerHTML = `<a href="#" onclick="play('${video.videoId}')">${video.title}</a>`;
+          recommendationsContainer.appendChild(li);
+        });
+      } catch (error) {
+        console.error('Fetch error:', error);
+        alert('There was an error with the recommendations. Please try again later.');
+      }
+    }
+  </script>
+</body>
+</html>
