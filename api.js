@@ -1,46 +1,213 @@
 const express = require('express');
-const router = express.Router();
 const axios = require('axios');
+require('dotenv').config();
 
-const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
-const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
+const app = express();
+const PORT = process.env.PORT || 5000;
 
-async function spotifyCreds() {
-  const tokenResponse = await axios.post('https://accounts.spotify.com/api/token', 'grant_type=client_credentials', {
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Authorization': 'Basic ' + Buffer.from(SPOTIFY_CLIENT_ID + ':' + SPOTIFY_CLIENT_SECRET).toString('base64'),
-    },
-  });
-  return tokenResponse.data.access_token;
+async function convert(ms) {
+  var minutes = Math.floor(ms / 60000);
+  var seconds = ((ms % 60000) / 1000).toFixed(0);
+  return minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
 }
 
-router.get('/search', async (req, res) => {
-  try {
-    const token = await spotifyCreds();
-    const response = await axios.get(`https://api.spotify.com/v1/search?q=${req.query.query}&type=track`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-    res.json(response.data.tracks.items);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+async function spotifyCreds() {
+  return new Promise(async (resolve) => {
+    try {
+      const json = await (
+        await axios.post(
+          'https://accounts.spotify.com/api/token',
+          'grant_type=client_credentials',
+          {
+            headers: {
+              Authorization:
+                'Basic ' +
+                Buffer.from(
+                  process.env.SPOTIFY_CLIENT_ID +
+                    ':' +
+                    process.env.SPOTIFY_CLIENT_SECRET
+                ).toString('base64'),
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+          }
+        )
+      ).data;
+      if (!json.access_token)
+        return resolve({
+          creator: 'Budy x creator ',
+          status: false,
+          msg: "Can't generate token!",
+        });
+      resolve({
+        creator: 'Budy x creator ',
+        status: true,
+        data: json,
+      });
+    } catch (e) {
+      resolve({
+        creator: 'Budy x creator ',
+        status: false,
+        msg: e.message,
+      });
+    }
+  });
+}
+
+async function getInfo(url) {
+  return new Promise(async (resolve) => {
+    try {
+      const creds = await spotifyCreds();
+      if (!creds.status) return resolve(creds);
+      const json = await (
+        await axios.get(
+          'https://api.spotify.com/v1/tracks/' + url.split('track/')[1],
+          {
+            headers: {
+              Authorization: 'Bearer ' + creds.data.access_token,
+            },
+          }
+        )
+      ).data;
+      resolve({
+        creator: 'Budy x creator ',
+        status: true,
+        data: {
+          thumbnail: json.album.images[0].url,
+          title: json.artists[0].name + ' - ' + json.name,
+          artist: json.artists[0],
+          duration: await convert(json.duration_ms),
+          preview: json.preview_url,
+        },
+      });
+    } catch (e) {
+      resolve({
+        creator: 'Budy x creator ',
+        status: false,
+        msg: e.message,
+      });
+    }
+  });
+}
+
+async function searching(query, type = 'track', limit = 20) {
+  return new Promise(async (resolve) => {
+    try {
+      const creds = await spotifyCreds();
+      if (!creds.status) return resolve(creds);
+      const json = await (
+        await axios.get(
+          'https://api.spotify.com/v1/search?query=' +
+            query +
+            '&type=' +
+            type +
+            '&offset=0&limit=' + limit,
+          {
+            headers: {
+              Authorization: 'Bearer ' + creds.data.access_token,
+            },
+          }
+        )
+      ).data;
+      if (!json.tracks.items || json.tracks.items.length < 1)
+        return resolve({
+          creator: 'Budy x creator ',
+          status: false,
+          msg: 'Music not found!',
+        });
+      let data = [];
+      json.tracks.items.map((v) =>
+        data.push({
+          title: v.album.artists[0].name + ' - ' + v.name,
+          duration: await convert(v.duration_ms),
+          popularity: v.popularity + '%',
+          preview: v.preview_url,
+          url: v.external_urls.spotify,
+        })
+      );
+      resolve({
+        creator: 'Budy x creator ',
+        status: true,
+        data,
+      });
+    } catch (e) {
+      resolve({
+        creator: 'Budy x creator ',
+        status: false,
+        msg: e.message,
+      });
+    }
+  });
+}
+
+async function spotifydl(url) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const yanzz = await axios.get(
+        `https://api.fabdl.com/spotify/get?url=${encodeURIComponent(url)}`,
+        {
+          headers: {
+            accept: 'application/json, text/plain, */*',
+            'accept-language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+            'sec-ch-ua': '"Not)A;Brand";v="24", "Chromium";v="116"',
+            'sec-ch-ua-mobile': '?1',
+            'sec-ch-ua-platform': '"Android"',
+            'sec-fetch-dest': 'empty',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-site': 'cross-site',
+            Referer: 'https://spotifydownload.org/',
+            'Referrer-Policy': 'strict-origin-when-cross-origin',
+          },
+        }
+      );
+      const yanz = await axios.get(
+        `https://api.fabdl.com/spotify/mp3-convert-task/${yanzz.data.result.gid}/${yanzz.data.result.id}`,
+        {
+          headers: {
+            accept: 'application/json, text/plain, */*',
+            'accept-language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+            'sec-ch-ua': '"Not)A;Brand";v="24", "Chromium";v="116"',
+            'sec-ch-ua-mobile': '?1',
+            'sec-ch-ua-platform': '"Android"',
+            'sec-fetch-dest': 'empty',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-site': 'cross-site',
+            Referer: 'https://spotifydownload.org/',
+            'Referrer-Policy': 'strict-origin-when-cross-origin',
+          },
+        }
+      );
+      const result = {};
+      result.title = yanzz.data.result.name;
+      result.type = yanzz.data.result.type;
+      result.artis = yanzz.data.result.artists;
+      result.durasi = yanzz.data.result.duration_ms;
+      result.image = yanzz.data.result.image;
+      result.download = 'https://api.fabdl.com' + yanz.data.result.download_url;
+      resolve(result);
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+app.get('/api/search', async (req, res) => {
+  const { query, type, limit } = req.query;
+  const result = await searching(query, type, limit);
+  res.json(result);
 });
 
-router.get('/recommendations', async (req, res) => {
-  try {
-    const token = await spotifyCreds();
-    const response = await axios.get(`https://api.spotify.com/v1/recommendations?seed_tracks=${req.query.seed_tracks}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-    res.json(response.data.tracks);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+app.get('/api/info', async (req, res) => {
+  const { url } = req.query;
+  const result = await getInfo(url);
+  res.json(result);
 });
 
-module.exports = router;
+app.get('/api/download', async (req, res) => {
+  const { url } = req.query;
+  const result = await spotifydl(url);
+  res.json(result);
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
