@@ -5,6 +5,11 @@ module.exports = async (req, res) => {
   if (!query) {
     return res.status(400).send('Query tidak ditemukan');
   }
-  const result = await ytsearch(query);
-  res.json(result.videos);
+  try {
+    const result = await ytsearch(query);
+    res.json(result.videos);
+  } catch (error) {
+    console.error('Error during search:', error);
+    res.status(500).send('Error during search');
+  }
 };
