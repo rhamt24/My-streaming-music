@@ -5,6 +5,11 @@ module.exports = (req, res) => {
   if (!videoId) {
     return res.status(400).send('ID video tidak ditemukan');
   }
-  const stream = ytdl(videoId, { filter: 'audioonly' });
-  stream.pipe(res);
+  try {
+    const stream = ytdl(videoId, { filter: 'audioonly' });
+    stream.pipe(res);
+  } catch (error) {
+    console.error('Error during streaming:', error);
+    res.status(500).send('Error during streaming');
+  }
 };
